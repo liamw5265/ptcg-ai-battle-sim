@@ -25,6 +25,8 @@ class Attack:
         self.damage = damage
         self.cost = cost if cost is not None else []
         self.effect = effect
+
+        self.effect_id = None
         
 class Ability:
     '''
@@ -41,6 +43,7 @@ class Ability:
         self.once_per_turn = once_per_turn
 
         self.used = False
+        self.effect_id = None
         
 
 class PokemonCard(Card):
@@ -92,6 +95,7 @@ class TrainerCard(Card):
         super().__init__(card_id, card_name, card_type)
         self.trainer_type = trainer_type
         self.effect = effect
+        self.effect_id = None
 
 class EnergyCard(Card):
     '''
