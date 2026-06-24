@@ -121,10 +121,12 @@ class TrainerCard(Card):
                  card_name: str, 
                  card_type: str,
                  trainer_type: str, 
-                 effect: str):
+                 effect: str,
+                 use_on_pokemon: bool = False):
         '''
         '''
         super().__init__(card_id, card_name, card_type)
+        self.use_on_pokemon = use_on_pokemon
         self.trainer_type = trainer_type
         self.effect = effect
         self.effect_id = None
