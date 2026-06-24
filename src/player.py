@@ -19,7 +19,7 @@ class Player:
         self.retreated: bool = False
 
     # Set up phase
-    def shuffle_deck(self):
+    def shuffle_deck(self) -> bool:
         '''
         '''
         for _ in range(random.randint(1, 5)):
@@ -27,7 +27,7 @@ class Player:
 
         return True
     
-    def draw_hand(self):
+    def draw_hand(self) -> bool:
         '''
         '''
         for _ in range(7):
@@ -36,7 +36,7 @@ class Player:
 
         return True
     
-    def hand_has_basic(self):
+    def hand_has_basic(self) -> list[bool, int]:
         '''
         '''
         mulligan = 0
@@ -52,9 +52,9 @@ class Player:
             else:
                 break
 
-        return True, mulligan
+        return [True, mulligan]
     
-    def play_basic_to_active(self, pokemon: PokemonCard):
+    def play_basic_to_active(self, pokemon: PokemonCard) -> bool:
         '''
         '''
         if self.active is not None:
@@ -68,7 +68,7 @@ class Player:
 
         return True
     
-    def play_basic_to_bench(self, pokemon: PokemonCard, max_bench: int = 5):
+    def play_basic_to_bench(self, pokemon: PokemonCard, max_bench: int = 5) -> bool:
         '''
         '''
         if len(self.bench) >= max_bench:
@@ -85,7 +85,7 @@ class Player:
 
         return True
     
-    def set_prizes(self):
+    def set_prizes(self) -> bool:
         '''
         '''
         if self.prizes:
@@ -99,7 +99,7 @@ class Player:
     
 
     # Action Phase
-    def draw(self, amount: int = 1):
+    def draw(self, amount: int = 1) -> bool:
         '''
         '''
         if not self.deck:
@@ -109,7 +109,7 @@ class Player:
             card = self.deck.pop(0)
             self.hand.append(card)
 
-    def can_evolve_pokemon(self, pre_evo: PokemonCard, evo_pokemon: PokemonCard):
+    def can_evolve_pokemon(self, pre_evo: PokemonCard, evo_pokemon: PokemonCard) -> bool:
         '''
         '''
         if pre_evo.evolved:
@@ -123,7 +123,7 @@ class Player:
         
         return True
 
-    def evolve_pokemon(self, pre_evo: PokemonCard, evo_pokemon: PokemonCard):
+    def evolve_pokemon(self, pre_evo: PokemonCard, evo_pokemon: PokemonCard) -> bool:
         '''
         '''
         if not self.can_evolve_pokemon(pre_evo, evo_pokemon):
@@ -143,7 +143,7 @@ class Player:
 
         return True
     
-    def can_attach_energy(self, pokemon: PokemonCard, energy: EnergyCard):
+    def can_attach_energy(self, pokemon: PokemonCard, energy: EnergyCard) -> bool:
         '''
         '''
         if self.energy_attached:
@@ -157,7 +157,7 @@ class Player:
         
         return True
     
-    def attach_energy(self, pokemon: PokemonCard, energy: EnergyCard):
+    def attach_energy(self, pokemon: PokemonCard, energy: EnergyCard) -> bool:
         '''
         '''
         if not self.can_attach_energy(pokemon, energy):
@@ -169,7 +169,7 @@ class Player:
 
         return True
     
-    def can_retreat_active(self, bench_pokemon: PokemonCard):
+    def can_retreat_active(self, bench_pokemon: PokemonCard) -> bool:
         '''
         '''
         if self.retreated:
@@ -178,12 +178,15 @@ class Player:
         if self.active is None:
             return False
         
+        if bench_pokemon == self.active:
+            return False
+        
         if bench_pokemon not in self.bench:
             return False
         
         return False
 
-    def retreat_active(self, bench_pokemon: PokemonCard):
+    def retreat_active(self, bench_pokemon: PokemonCard) -> bool:
         '''
         '''
         if not self.can_retreat_active(bench_pokemon):
@@ -195,21 +198,18 @@ class Player:
 
         return True
     
-    def can_play_trainer(self, card: TrainerCard, pokemon: PokemonCard = None):
+    def can_play_trainer(self, card: TrainerCard, pokemon: PokemonCard = None) -> bool:
         '''
         '''
         if card.card_type == 'Supporter' and self.supporter_played:
             return False
         
-        if pokemon is not None:
-            return False
-        
-        if pokemon.tool is not None:
+        if pokemon is None and card.use_on_pokemon:
             return False
         
         return True
     
-    def play_trainer(self, game: Game, card: TrainerCard, pokemon: PokemonCard = None):
+    def play_trainer(self, game: Game, card: TrainerCard, pokemon: PokemonCard = None) -> bool:
         '''
         '''
         if not self.can_play_trainer(card):
@@ -248,7 +248,7 @@ class Player:
 
         return True
     
-    def can_use_ability(self, pokemon: PokemonCard):
+    def can_use_ability(self, pokemon: PokemonCard) -> bool:
         '''
         '''
         if pokemon.ability is None:
@@ -259,7 +259,7 @@ class Player:
         
         return True
     
-    def use_ability(self, pokemon: PokemonCard):
+    def use_ability(self, pokemon: PokemonCard) -> bool:
         '''
         '''
         if not self.can_use_ability(pokemon):
@@ -274,7 +274,7 @@ class Player:
 
         return True
     
-    def can_use_stadium(self, game: Game):
+    def can_use_stadium(self, game: Game) -> bool:
         '''
         '''
         if game.stadium is None:
@@ -285,7 +285,7 @@ class Player:
 
         return True
     
-    def use_stadium(self, game: Game):
+    def use_stadium(self, game: Game) -> bool:
         '''
         '''
         if not self.can_use_stadium(game):
@@ -299,3 +299,170 @@ class Player:
         game.stadium.used = True
 
         return True
+    
+    def get_legal_actions(self, game: Game) -> list[dict[str, str | Card]]:
+        '''
+        '''
+        legal_actions = []
+        pokemon_in_play = self.get_all_pokemon_in_play()
+
+        for card in [self.active] + self.bench + self.hand:
+            if isinstance(card, PokemonCard):
+                for pokemon in pokemon_in_play:
+                    if self.can_retreat_active(pokemon):
+                        legal_actions.append({
+                            'action': 'retreat_active',
+                            'pokemon': pokemon
+                        })
+                    if self.can_use_ability(pokemon):
+                        legal_actions.append({
+                            'action': 'use_ability',
+                            'pokemon': pokemon
+                        })
+                    for pokemon2 in pokemon_in_play:
+                        if self.can_evolve_pokemon(pokemon, pokemon2):
+                            legal_actions.append({
+                                'action': 'evolve_pokemon',
+                                'pre_evo': pokemon,
+                                'evo_pokemon': pokemon2
+                            })
+            if isinstance(card, TrainerCard):
+                if pokemon in pokemon_in_play:
+                    if self.can_play_trainer(card, pokemon):
+                        legal_actions.append({
+                            'action': 'play_trainer',
+                            'card': card,
+                            'pokemon': pokemon
+                        })
+                else:
+                    if self.can_play_trainer(card):
+                        legal_actions.append({
+                            'action': 'play_trainer',
+                            'card': card,
+                            'pokemon': None
+                        })
+
+            if isinstance(card, EnergyCard):
+                for pokemon in pokemon_in_play:
+                    if self.can_attach_energy(pokemon, card):
+                        legal_actions.append({
+                            'action': 'attach_energy',
+                            'pokemon': pokemon,
+                            'energy': card
+                        })
+            if self.can_use_stadium(game):
+                legal_actions.append({
+                    'action': 'use_stadium',
+                    'game': game
+                })
+    
+    # Action phase subsequent actions
+
+    def take_prize(self, amount: int = 1) -> bool:
+        '''
+        '''
+        if not self.prizes:
+            return False
+        
+        for _ in range(amount):
+            card = self.prizes.pop(0)
+            self.hand.append(card)
+
+        return True
+    
+    def can_bench_to_active(self, pokemon: PokemonCard) -> bool:
+        '''
+        '''
+        if self.bench is None:
+            return False
+        
+        if pokemon not in self.bench:
+            return False
+        
+        return True
+    
+    def bench_to_active(self, pokemon: PokemonCard) -> bool:
+        '''
+        '''
+        if not self.can_bench_to_active(pokemon):
+            return False
+        
+        temp = self.active
+        self.active = pokemon
+        self.bench.remove(pokemon)
+        self.bench.append(temp)
+
+        return True
+    
+    def can_bench_to_active_no_active(self, pokemon: PokemonCard) -> bool:
+        '''
+        '''
+        if self.active is not None:
+            return False
+        
+        if pokemon not in self.bench:
+            return False
+        
+        return True
+    
+    def bench_to_active_no_active(self, pokemon: PokemonCard) -> bool:
+        '''
+        '''
+        if not self.can_bench_to_active_no_active(pokemon):
+            return False
+        
+        self.active = pokemon
+        self.bench.remove(pokemon)
+
+        return True
+    
+    def check_knockout(self) -> bool:
+        '''
+        '''
+        if self.active is not None:
+            return False
+        
+        if self.active.damage >= self.active.hp:
+            return True
+        
+        return False
+    
+    # Attack phase
+
+    # Accessor Functions
+    def get_active(self) -> list[PokemonCard]:
+        '''
+        '''
+        return [self.active]
+    
+    def get_bench(self) -> list[PokemonCard]:
+        '''
+        '''
+        return self.bench
+
+    def get_all_pokemon_in_play(self) -> list[PokemonCard]:
+        '''
+        '''
+        active = self.get_active()
+        bench = self.get_bench()
+
+        if not active and not bench:
+            return []
+        
+        if not active:
+            return self.bench
+        
+        if not bench:
+            return [self.active]
+        
+        return [self.active] + self.bench
+    
+    def get_pokemon_in_hand(self) -> list[PokemonCard]:
+        '''
+        '''
+        pokemon = []
+        for card in self.hand:
+            if isinstance(card, PokemonCard):
+                pokemon.append(card)
+
+        return pokemon
