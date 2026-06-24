@@ -92,7 +92,7 @@ class PokemonCard(Card):
                  ability: Ability = None,
                  attacks: list[Attack] = None,
                  weakness: str = None,
-                 resistance: str = None,
+                 resistance: str = None
                  ):
         '''
         '''
@@ -128,3 +128,19 @@ class TrainerCard(Card):
         self.trainer_type = trainer_type
         self.effect = effect
         self.effect_id = None
+
+class StadiumCard(TrainerCard):
+    '''
+    '''
+    def __init__(self, 
+                 card_id: int, 
+                 card_name: str, 
+                 card_type: str, 
+                 trainer_type: str, 
+                 effect: str):
+        '''
+        '''
+        super().__init__(card_id, card_name, card_type, trainer_type, effect)
+        self.effect_id = None
+        self.once_per_turn = False
+        self.used = False
