@@ -11,13 +11,30 @@ class Card:
         self.card_name = card_name
         self.card_type = card_type
 
+class EnergyCard(Card):
+    '''
+    '''
+    def __init__(self, 
+                 card_id: int, 
+                 card_name: str, 
+                 card_type: str,
+                 energy_type: str,
+                 effect: str = None,
+                 effect_id: str = None):
+        '''
+        '''
+        super().__init__(card_id, card_name, card_type)
+        self.energy_type = energy_type
+        self.effect = effect
+        self.effect_id = effect_id
+
 class Attack:
     '''
     '''
     def __init__(self, 
                  name: str, 
                  damage: int = 0, 
-                 cost: list[str] = None, 
+                 cost: list[EnergyCard] = None, 
                  effect: str = None):
         '''
         '''
@@ -44,6 +61,20 @@ class Ability:
 
         self.used = False
         self.effect_id = None
+
+class StatusCondition:
+    '''
+    '''
+    def __init__(self,
+                 name: str,
+                 effect: str,
+                 effect_id: str):
+        '''
+        '''
+        self.name = name
+        self.effect = effect
+        self.effect_id = effect_id
+        
         
 
 class PokemonCard(Card):
@@ -76,10 +107,11 @@ class PokemonCard(Card):
         self.resistance = resistance
         self.retreat_cost = retreat_cost
 
-        self.damage = 0
-        self.attached_energy = []
-        self.tool = None
-        self.status_cond = False
+        self.damage: int = 0
+        self.attached_energy: list[EnergyCard] = []
+        self.tool: TrainerCard = None
+        self.status_cond: list[StatusCondition] = None
+        self.evolved = False
 
 class TrainerCard(Card):
     '''
@@ -96,18 +128,3 @@ class TrainerCard(Card):
         self.trainer_type = trainer_type
         self.effect = effect
         self.effect_id = None
-
-class EnergyCard(Card):
-    '''
-    '''
-    def __init__(self, 
-                 card_id: int, 
-                 card_name: str, 
-                 card_type: str,
-                 energy_type: str):
-        '''
-        '''
-        super().__init__(card_id, card_name, card_type)
-        self.energy_type = energy_type
-
-        
