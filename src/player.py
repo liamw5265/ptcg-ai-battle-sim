@@ -121,6 +121,9 @@ class Player:
         if pre_evo not in self.bench or pre_evo != self.active:
             return False
         
+        if evo_pokemon not in self.hand:
+            return False
+        
         return True
 
     def evolve_pokemon(self, pre_evo: PokemonCard, evo_pokemon: PokemonCard) -> bool:
@@ -191,6 +194,9 @@ class Player:
         '''
         if not self.can_retreat_active(bench_pokemon):
             return False
+        
+        for _ in self.active.retreat_cost:
+            self.active.attached_energy.pop(0)
         
         self.bench.append(self.active)
         self.active = bench_pokemon
@@ -314,33 +320,38 @@ class Player:
                             'action': 'retreat_active',
                             'pokemon': pokemon
                         })
-                    if self.can_use_ability(pokemon):
+                    
+                    if self.can_evolve_pokemon(card, pokemon):
                         legal_actions.append({
-                            'action': 'use_ability',
-                            'pokemon': pokemon
+                            'action': 'evolve_pokemon',
+                            'pre_evo': card,
+                            'evo_pokemon': pokemon
                         })
-                    for pokemon2 in pokemon_in_play:
-                        if self.can_evolve_pokemon(pokemon, pokemon2):
-                            legal_actions.append({
-                                'action': 'evolve_pokemon',
-                                'pre_evo': pokemon,
-                                'evo_pokemon': pokemon2
-                            })
+                if self.can_use_ability(card):
+                    legal_actions.append({
+                        'action': 'use_ability',
+                        'pokemon': card
+                    })
+                for attack_index in card.attacks:
+                    if self.can_use_attack(attack_index):
+                        legal_actions.append({
+                            'action': 'use_attack',
+                            'attack': attack_index
+                        })
             if isinstance(card, TrainerCard):
-                if pokemon in pokemon_in_play:
+                for pokemon in pokemon_in_play:
                     if self.can_play_trainer(card, pokemon):
                         legal_actions.append({
                             'action': 'play_trainer',
                             'card': card,
                             'pokemon': pokemon
                         })
-                else:
-                    if self.can_play_trainer(card):
-                        legal_actions.append({
-                            'action': 'play_trainer',
-                            'card': card,
-                            'pokemon': None
-                        })
+                if self.can_play_trainer(card):
+                    legal_actions.append({
+                        'action': 'play_trainer',
+                        'card': card,
+                        'pokemon': None
+                    })
 
             if isinstance(card, EnergyCard):
                 for pokemon in pokemon_in_play:
@@ -428,6 +439,45 @@ class Player:
         return False
     
     # Attack phase
+    def can_use_attack(self, attack_index: int) -> bool:
+        '''
+        '''
+        cost = self.active.attacks[attack_index].cost.copy()
+        attached_energy = self.active.attached_energy.copy()
+
+        for energy in cost:
+            found = False
+            for attached in attached_energy:
+                if attached == energy or attached == 'C':
+                    found = True
+                    attached_energy.remove(attached)
+
+            if not found:
+                return False
+            
+        return True
+    
+    def use_attack(self, attack_index: int ) -> bool:
+        '''
+        '''
+        if self.active is None:
+            return False
+        
+        if self.active.unable_to_attack:
+            return False
+        
+        if not self.can_use_attack(attack_index):
+            return False
+        
+        attack = self.active.attacks[attack_index]
+
+        attack_function = EFFECTS_DICT.get(attack.effect_id)
+
+        if attack_function is not None:
+            attack_function(self, self.active, attack)
+
+        return True
+
 
     # Accessor Functions
     def get_active(self) -> list[PokemonCard]:
